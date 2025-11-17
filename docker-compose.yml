@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: mitochat_backend
+    restart: always
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./prompts:/app/prompts
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    # gpus: all
+    # If using Swarm:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    container_name: mitochat_frontend
+    restart: always
+    ports:
+      - "8501:8501"
+    environment:
+      - RAG_API_URL=http://backend:9000
+    depends_on:
+      - backend
