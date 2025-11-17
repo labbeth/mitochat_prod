@@ -298,7 +298,3 @@ Internet Users
     │     └─ FAISS index & docstore (mounted under /app/data)
 
 ```
-
-## 📄 License
-
-MIT License.
