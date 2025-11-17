@@ -127,7 +127,7 @@ This will:
 
 ---
 
-## 3. Run Backend & Frontend Locally
+## 🚀 3. Run Backend & Frontend Locally
 
 Run backend (FastAPI + uvicorn):
 
@@ -193,7 +193,6 @@ streamlit run scripts/streamlit_app_frontend.py --server.address=0.0.0.0
 
 The frontend container has **no GPU requirements**.
 
----
 
 ### 4.3 Building Docker Images
 
