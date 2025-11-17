@@ -1,4 +1,7 @@
-# ![MitoChat](assets/logo.png)🧬 MitoChat — RAG + Agentic Streamlit Application
+<h1>
+  <img src="assets/logo.png" alt="MitoChat" width="50" style="vertical-align: middle;"/>
+  MitoChat: RAG + Agentic Streamlit Application
+</h1>
 
 **MitoChat** is a Retrieval-Augmented Generation (RAG) application designed to support genomic and clinical knowledge exploration using a GPU-accelerated backend.  
 
