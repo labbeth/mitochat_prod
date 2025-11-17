@@ -127,7 +127,7 @@ This will:
 
 ---
 
-## 3. Run Backend & Frontend Locally (no Docker)
+## 3. Run Backend & Frontend Locally
 
 Run backend (FastAPI + uvicorn):
 
@@ -145,6 +145,7 @@ streamlit run scripts/streamlit_app_frontend.py
 
 Access the UI: http://localhost:8501
 
+---
 
 ## 🐳 4. Docker Setup
 
@@ -152,7 +153,6 @@ This project uses **two Docker images**:
 - `backend.Dockerfile`: FastAPI + vLLM + RAG (GPU)
 - `frontend.Dockerfile`: Streamlit UI (CPU)
 
----
 
 ### 4.1 Backend Dockerfile (overview)
 
@@ -176,7 +176,6 @@ This image is GPU-enabled and requires:
 - NVIDIA Container Toolkit  
 - `--gpus all` (compose) or device reservation  
 
----
 
 ### 4.2 Frontend Dockerfile (overview)
 
@@ -257,11 +256,7 @@ docker exec -it mitochat_backend python3 -c "import torch; print(torch.cuda.is_a
 
 ## 🌐 7. FastAPI Endpoints
 
-Open API documentation:
-
-```
-http://localhost:9000/docs
-```
+Open API documentation: http://localhost:9000/docs
 
 Example request:
 
