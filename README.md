@@ -70,7 +70,9 @@ The stack includes:
 - **MiniLM** embeddings 
 - **BGE-reranker-base** reranking
 - **vLLM** LLM serving (GPU)
-- Optional **spaCy** sentence highlighting
+- Optional **spaCy** integration for:
+  - sentence splitting,
+  - highlighting the most relevant sentences inside retrieved chunks.
 
 ### Frontend (Streamlit)
 
@@ -79,13 +81,19 @@ The stack includes:
 
 ---
 
-## 🛠️ 1. Local Development
+## 🛠️ 1. Local Development (without Docker)
 
-### Create virtual env
+### Create & activate a virtual env
 
 ```bash
 python -m venv venv_clean
+
+# Windows
+venv_clean\Scripts\activate
+
+# Linux / macOS
 source venv_clean/bin/activate
+
 ```
 
 ### Install deps
@@ -95,39 +103,110 @@ pip install -r requirements.backend.txt
 pip install -r requirements.frontend.txt
 ```
 
-Run backend:
+If you want to run vLLM locally outside Docker, you also need:
 
 ```bash
-uvicorn scripts.fastapi_backend:app --reload --port 9000
-```
-
-Run frontend:
-
-```bash
-streamlit run scripts/streamlit_app_frontend.py
+pip install vllm
 ```
 
 ---
 
 ## 🧱 2. Build FAISS Index
 
+The backend expects a FAISS index and docstore.
+
 ```bash
 python scripts/build_corpus_and_index_prod.py
 ```
 
-Index is saved under `data/index/`.
+This will:
+- Load documents from data/clinvar, data/genereviews, data/mitocarta, etc.
+- Encode them with MiniLM / sentence-transformers
+- Build a FAISS index
+- Store metadata in `data/index/` and associated files.
 
 ---
 
-## 🐳 3. Docker Setup
+## 3. Run Backend & Frontend Locally (no Docker)
 
-### Build backend:
+Run backend (FastAPI + uvicorn):
+
+```bash
+uvicorn scripts.fastapi_backend:app --host 0.0.0.0 --port 9000 --reload
+```
+
+Open the interactive docs: http://localhost:9000/docs
+
+Run frontend (Streamlit):
+
+```bash
+streamlit run scripts/streamlit_app_frontend.py
+```
+
+Access the UI: http://localhost:8501
+
+
+## 🐳 4. Docker Setup
+
+This project uses **two Docker images**:
+- `backend.Dockerfile`: FastAPI + vLLM + RAG (GPU)
+- `frontend.Dockerfile`: Streamlit UI (CPU)
+
+---
+
+### 4.1 Backend Dockerfile (overview)
+
+The backend image:
+
+- Uses a **CUDA 12.1** runtime base image  
+- Installs **Python**, **PyTorch (cu121)**, **vLLM**  
+- Installs all backend dependencies from `requirements.backend.txt`  
+- Copies backend code, scripts, and prompts  
+- **Does NOT include models or data** → they are mounted as **volumes**  
+- Exposes **port 9000**  
+- Launches FastAPI via:
+
+```bash
+uvicorn scripts.fastapi_backend:app --host 0.0.0.0 --port 9000
+```
+
+This image is GPU-enabled and requires:
+
+- Host NVIDIA drivers  
+- NVIDIA Container Toolkit  
+- `--gpus all` (compose) or device reservation  
+
+---
+
+### 4.2 Frontend Dockerfile (overview)
+
+The frontend image:
+
+- Uses **python:3.11-slim**  
+- Installs dependencies via `requirements.frontend.txt`  
+- Copies `scripts/` and `assets/`  
+- Exposes **port 8501**  
+- Runs Streamlit:
+
+```bash
+streamlit run scripts/streamlit_app_frontend.py --server.address=0.0.0.0
+```
+
+The frontend container has **no GPU requirements**.
+
+---
+
+### 4.3 Building Docker Images
+
+From the project root:
+
+### Backend:
 
 ```bash
 docker build -f docker/backend.Dockerfile -t mitochat-backend .
 ```
 
-### Build frontend:
+### Frontend:
 
 ```bash
 docker build -f docker/frontend.Dockerfile -t mitochat-frontend .
@@ -135,21 +214,40 @@ docker build -f docker/frontend.Dockerfile -t mitochat-frontend .
 
 ---
 
-## 🧩 4. Docker Compose Deployment
+## 🧩 5. Docker Compose Deployment
 
 ```bash
 docker compose up -d --build
 ```
 
+This starts:
+
+- **Backend** at port **9000**  
+- **Frontend** at port **8501**  
+
+Check logs:
+
+```bash
+docker compose logs -f backend
+docker compose logs -f frontend
+```
+
 ---
 
-## 🧠 GPU Notes
+## 🧠 6. GPU / vLLM Notes
 
-- NVIDIA drivers required
-- NVIDIA Docker Toolkit required
-- vLLM is installed **inside** the backend container
+The backend image includes:
 
-Test GPU inside container:
+- PyTorch + CUDA 12.1  
+- `vllm`  
+
+Requirements on host:
+
+- NVIDIA driver  
+- NVIDIA Docker Toolkit  
+- `docker run --gpus all ...`  
+
+Check GPU access:
 
 ```bash
 docker exec -it mitochat_backend python3 -c "import torch; print(torch.cuda.is_available())"
@@ -157,15 +255,55 @@ docker exec -it mitochat_backend python3 -c "import torch; print(torch.cuda.is_a
 
 ---
 
-## 🌐 FastAPI Endpoints
+## 🌐 7. FastAPI Endpoints
 
-Visit:
+Open API documentation:
 
 ```
 http://localhost:9000/docs
 ```
 
+Example request:
+
+```bash
+curl -X POST http://localhost:9000/rag/query   -H "Content-Type: application/json"   -d '{"query": "Que sais-tu sur MT-ND1 ?"}'
+```
+
 ---
+
+## 🖥️ 8. Production Architecture (Example)
+
+A target setup might look like:
+
+```text
+Internet Users
+    |
+    |  TCP 443 (HTTPS)
+    v
+   WAF
+    |
+    |  TCP 443 (HTTPS)
+    v
+[ DMZ SERVER ]
+    ├─ Reverse Proxy (nginx/caddy)
+    │      └─ forwards to Streamlit UI (localhost:8501)
+    │
+    └─ Streamlit Web App (Frontend UI)
+           ├─ Displays chat interface
+           ├─ Sends raw user query (FR) → RAG API
+           └─ Receives final FR answer
+
+[ GPU SERVER ]
+    ├─ RAG Backend API (FastAPI + vLLM)
+    │     ├─ Translation (FR↔EN)
+    │     ├─ RAG core (FAISS + embeddings + reranker)
+    │     └─ LLM generation with vLLM
+    │
+    ├─ Local assets:
+    │     ├─ Models (translation, embeddings, reranker, LLM)
+    │     └─ FAISS index & docstore (mounted under /app/data)
+
+```
 
 ## 📄 License
 
