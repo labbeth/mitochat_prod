@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  backend:
+    image: mitochat-backend:1.0.0
+    container_name: mitochat_backend
+    restart: always
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./prompts:/app/prompts
+      - ./assets:/app/assets
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    # Si le runtime NVIDIA est configuré :
+    # gpus: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
