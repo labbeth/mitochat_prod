@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  frontend:
+    image: mitochat-frontend:1.0.0
+    container_name: mitochat_frontend
+    restart: always
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://GPU_SERVER_HOST_OR_IP:9000
