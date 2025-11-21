@@ -11,7 +11,10 @@ venv_clean/
 .idea/
 .data/
 .cache/
+.streamlit/config.toml
+.streamlit/
 scripts/index/
+scripts/config.yml
 scripts/audio_io.py
 scripts/chunks.jsonl
 scripts/convert_marian_to_safetensors.py
