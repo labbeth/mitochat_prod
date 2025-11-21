@@ -30,9 +30,6 @@ from fastapi import Request
 from fastapi.staticfiles import StaticFiles
 
 
-USE_STUB_LLM = False  # running on Windows without vLLM -> True; set False on GPU server
-
-
 # ============================================================
 # HELPERS
 # ============================================================
@@ -105,6 +102,8 @@ gen_cfg = cfg.get("generation", {}) or {}
 retr_cfg = cfg.get("retrieval", {}) or {}
 trans_cfg = cfg.get("translation", {}) or {}
 paths = cfg.get("paths", {}) or {}
+USE_STUB_LLM = bool(gen_cfg.get("use_stub_llm", False))
+# USE_STUB_LLM = os.getenv("USE_STUB_LLM", str(USE_STUB_LLM)).lower() == "true"
 
 # index_dir = paths["index_dir"]          # e.g. "data/index"
 index_dir = resolve_project_path(cfg["paths"]["index_dir"])
@@ -144,6 +143,21 @@ router_prompt_en = load_router_prompt(lang="en", base_dir=prompts_dir)
 # ============================================================
 # 2. DEFINE THE vLLM CALL FUNCTION
 # ============================================================
+# Stub version for debug
+def generate_with_vllm_stub(
+    messages: List[Dict[str, str]],
+    max_tokens: Optional[int] = None,
+    temperature: Optional[float] = None,
+) -> Optional[str]:
+    # TEMP STUB: avoid calling real vLLM
+    last_user = ""
+    for m in reversed(messages):
+        if m.get("role") == "user":
+            last_user = m.get("content", "")
+            break
+    return f"[LLM STUB] Last user message (EN): {last_user[:200]}"
+
+
 # For target run (does not work in Windows)
 def generate_with_vllm(
     messages: List[Dict[str, str]],
@@ -153,6 +167,11 @@ def generate_with_vllm(
     """
     Call vLLM OpenAI-compatible server.
     """
+
+    # if stub enabled, short-circuit here
+    if USE_STUB_LLM:
+        return generate_with_vllm_stub(messages, max_tokens=max_tokens, temperature=temperature)
+
     base_url = gen_cfg.get("vllm_base_url") or os.getenv("VLLM_BASE_URL", "http://127.0.0.1:8000/v1")
     model = gen_cfg.get("vllm_model") or os.getenv("VLLM_MODEL", "qwen2.5-7b-instruct")
     api_key = gen_cfg.get("vllm_api_key") or os.getenv("VLLM_API_KEY", "EMPTY")
@@ -184,22 +203,6 @@ def generate_with_vllm(
         return data["choices"][0]["message"]["content"]
     except Exception:
         return None
-
-
-# Stub version for debug
-def generate_with_vllm_stub(
-    messages: List[Dict[str, str]],
-    max_tokens: Optional[int] = None,
-    temperature: Optional[float] = None,
-) -> Optional[str]:
-    # TEMP STUB: avoid calling real vLLM
-    last_user = ""
-    for m in reversed(messages):
-        if m.get("role") == "user":
-            last_user = m.get("content", "")
-            break
-    return f"[LLM STUB] Last user message (EN): {last_user[:200]}"
-
 
 
 # ============================================================
