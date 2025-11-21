@@ -119,6 +119,7 @@ generation:
 #  provider: llama_cpp
 #  model_path: models/qwen2.5-3b-instruct-q4_k_m.gguf
   provider: vllm
+  use_stub_llm: false
   vllm_base_url: "http://vllm:8000/v1"
   vllm_model: "qwen25-3b-instruct"
   vllm_api_key: "EMPTY"
