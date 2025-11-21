@@ -117,10 +117,10 @@ retrieval:
 
 generation:
 #  provider: llama_cpp
-  model_path: ../models/Qwen2.5-7B-Instruct-Uncensored.Q4_K_M.gguf
+#  model_path: models/qwen2.5-3b-instruct-q4_k_m.gguf
   provider: vllm
-  vllm_base_url: "http://127.0.0.1:8000/v1"
-  vllm_model: "qwen2.5-7b-instruct"
+  vllm_base_url: "http://vllm:8000/v1"
+  vllm_model: "qwen25-3b-instruct"
   vllm_api_key: "EMPTY"
   temperature: 0.2
   max_tokens: 400
