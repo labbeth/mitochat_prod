@@ -1,6 +1,27 @@
 version: "3.9"
 
 services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: mitochat_vllm
+    restart: always
+#    ports:
+#      - "8000:8000"   # to expose it; internal-only is also fine
+    volumes:
+      - ./models:/app/models
+    command: >
+      python3 -m vllm.entrypoints.openai.api_server
+      --model /app/models/${VLLM_MODEL}
+      --served-model-name ${VLLM_MODEL}
+      --port 8000
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+
   backend:
     image: mitochat-backend:1.0.0
     container_name: mitochat_backend
@@ -8,16 +29,22 @@ services:
     ports:
       - "9000:9000"
     volumes:
+      - ./scripts/config.yaml:/app/scripts/config.yaml  # mount config
       - ./models:/app/models
       - ./data:/app/data
       - ./prompts:/app/prompts
       - ./assets:/app/assets
     environment:
       - CUDA_VISIBLE_DEVICES=0
+      - VLLM_BASE_URL=http://vllm:8000/v1
+      - VLLM_MODEL=${VLLM_MODEL}
+      - VLLM_API_KEY=EMPTY
+    depends_on:
+      - vllm
     # Si le runtime NVIDIA est configuré :
     # gpus: all
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - capabilities: [gpu]
