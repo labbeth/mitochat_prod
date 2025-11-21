@@ -1,5 +1,6 @@
 # fastapi_backend.py
 import os
+import requests
 import json
 from typing import List, Dict, Optional, Any, Tuple
 from fastapi import FastAPI
@@ -29,7 +30,7 @@ from fastapi import Request
 from fastapi.staticfiles import StaticFiles
 
 
-USE_STUB_LLM = True  # running on Windows without vLLM -> True; set False on GPU server
+USE_STUB_LLM = False  # running on Windows without vLLM -> True; set False on GPU server
 
 
 # ============================================================
@@ -144,48 +145,49 @@ router_prompt_en = load_router_prompt(lang="en", base_dir=prompts_dir)
 # 2. DEFINE THE vLLM CALL FUNCTION
 # ============================================================
 # For target run (does not work in Windows)
-# def generate_with_vllm(
-#     messages: List[Dict[str, str]],
-#     max_tokens: Optional[int] = None,
-#     temperature: Optional[float] = None,
-# ) -> Optional[str]:
-#     """
-#     Call vLLM OpenAI-compatible server.
-#     """
-#     base_url = gen_cfg.get("vllm_base_url") or os.getenv("VLLM_BASE_URL", "http://127.0.0.1:8000/v1")
-#     model = gen_cfg.get("vllm_model") or os.getenv("VLLM_MODEL", "qwen2.5-7b-instruct")
-#     api_key = gen_cfg.get("vllm_api_key") or os.getenv("VLLM_API_KEY", "EMPTY")
-#
-#     temperature = float(temperature if temperature is not None else gen_cfg.get("temperature", 0.2))
-#     max_tokens = int(max_tokens if max_tokens is not None else gen_cfg.get("max_tokens", 400))
-#
-#     payload = {
-#         "model": model,
-#         "messages": messages,
-#         "temperature": temperature,
-#         "max_tokens": max_tokens,
-#     }
-#
-#     headers = {
-#         "Authorization": f"Bearer {api_key}",
-#         "Content-Type": "application/json",
-#     }
-#
-#     resp = requests.post(
-#         base_url.rstrip("/") + "/chat/completions",
-#         json=payload,
-#         headers=headers,
-#         timeout=120,
-#     )
-#     resp.raise_for_status()
-#     data = resp.json()
-#     try:
-#         return data["choices"][0]["message"]["content"]
-#     except Exception:
-#         return None
+def generate_with_vllm(
+    messages: List[Dict[str, str]],
+    max_tokens: Optional[int] = None,
+    temperature: Optional[float] = None,
+) -> Optional[str]:
+    """
+    Call vLLM OpenAI-compatible server.
+    """
+    base_url = gen_cfg.get("vllm_base_url") or os.getenv("VLLM_BASE_URL", "http://127.0.0.1:8000/v1")
+    model = gen_cfg.get("vllm_model") or os.getenv("VLLM_MODEL", "qwen2.5-7b-instruct")
+    api_key = gen_cfg.get("vllm_api_key") or os.getenv("VLLM_API_KEY", "EMPTY")
+
+    temperature = float(temperature if temperature is not None else gen_cfg.get("temperature", 0.2))
+    max_tokens = int(max_tokens if max_tokens is not None else gen_cfg.get("max_tokens", 400))
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    resp = requests.post(
+        base_url.rstrip("/") + "/chat/completions",
+        json=payload,
+        headers=headers,
+        timeout=120,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    try:
+        return data["choices"][0]["message"]["content"]
+    except Exception:
+        return None
+
 
 # Stub version for debug
-def generate_with_vllm(
+def generate_with_vllm_stub(
     messages: List[Dict[str, str]],
     max_tokens: Optional[int] = None,
     temperature: Optional[float] = None,
