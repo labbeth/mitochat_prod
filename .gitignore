@@ -26,3 +26,5 @@ scripts/test_health.py
 scripts/test_rag_endpoint.py
 scripts/outputs
 .git_backup/
+mitochat-*
+

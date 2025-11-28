@@ -10,6 +10,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
+      - ./assets:/app/assets
       - ./models:/app/models
       - ./data:/app/data
       - ./prompts:/app/prompts
@@ -17,11 +18,11 @@ services:
       - CUDA_VISIBLE_DEVICES=0
     # gpus: all
     # If using Swarm:
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
+    # deploy:
+      # resources:
+      #   reservations:
+      #     devices:
+      #       - capabilities: [gpu]
 
   frontend:
     build:
@@ -32,6 +33,6 @@ services:
     ports:
       - "8501:8501"
     environment:
-      - RAG_API_URL=http://backend:9000
+      - BACKEND_URL=http://backend:9000
     depends_on:
       - backend

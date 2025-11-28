@@ -23,7 +23,7 @@ services:
             - capabilities: [ gpu ]
 
   backend:
-    image: mitochat-backend:1.0.0
+    image: mitochat-backend:1.0.1
     container_name: mitochat_backend
     restart: always
     ports:

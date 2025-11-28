@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   frontend:
-    image: mitochat-frontend:1.0.0
+    image: mitochat-frontend:1.0.1
     container_name: mitochat_frontend
     restart: always
     ports:

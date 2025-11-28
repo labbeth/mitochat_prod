@@ -20,6 +20,7 @@ WORKDIR /app
 # ------------------------------------------------------------------------------------
 COPY scripts/ ./scripts/
 COPY prompts/ ./prompts/
+COPY assets/ ./assets/
 COPY requirements.backend.txt .
 
 # ------------------------------------------------------------------------------------
