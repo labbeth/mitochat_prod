@@ -121,17 +121,36 @@ def main():
                     with st.expander("Router decision", expanded=False):
                         st.json(m["router"])
             # Under assistant message, show sources (skip live one to avoid duplicate-on-rerun)
-            if m["role"] == "assistant" and m.get("hits"):
+            # if m["role"] == "assistant" and m.get("hits"):
+            #     if live and i == len(st.session_state.chat) - 1:
+            #         continue
+            #     pr.render_sources_panel(
+            #         m["hits"],
+            #         query_fr=st.session_state.chat[i-1]["content"] if (i>0 and st.session_state.chat[i-1]["role"]=="user") else "",
+            #         answer_en=m.get("answer_en", ""),
+            #         title="📚 Sources",
+            #         expanded=False,
+            #         expand_children=False,
+            #     )
+            if m["role"] == "assistant":
+                has_hits = bool(m.get("hits"))
+                is_llm = (m.get("mode", "").upper() == "LLM")
+
+                # Avoid duplicate rendering for the live last assistant
                 if live and i == len(st.session_state.chat) - 1:
                     continue
-                pr.render_sources_panel(
-                    m["hits"],
-                    query_fr=st.session_state.chat[i-1]["content"] if (i>0 and st.session_state.chat[i-1]["role"]=="user") else "",
-                    answer_en=m.get("answer_en", ""),
-                    title="📚 Sources",
-                    expanded=False,
-                    expand_children=False,
-                )
+
+                # Only render sources if not LLM mode
+                if has_hits and not is_llm:
+                    pr.render_sources_panel(
+                        m["hits"],
+                        query_fr=st.session_state.chat[i-1]["content"] if (i > 0 and st.session_state.chat[i-1]["role"] == "user") else "",
+                        answer_en=m.get("answer_en", ""),
+                        title="📚 Sources",
+                        expanded=False,
+                        expand_children=False,
+                    )
+
 
     # Input
     user_msg = st.chat_input("Posez une question sur les maladies mitochondriales…")
