@@ -416,16 +416,42 @@ def rag_endpoint(req: RagRequest):
     # --- 7. Translate EN→FR ---
     answer_fr = translate_text(answer_en, "en", "fr", translator)
 
-    print(f"[/rag] → mode={router.get('mode')} | hits={len(hits)} | rewrite='{standalone_q[:120]}'")
+    # Decide what to show in the UI based on the final mode
+    if mode == "LLM":
+        hits_for_ui = []
+    else:
+        if use_ids:
+            selected = [h for i, h in enumerate(hits, 1) if i in use_ids]
+            hits_for_ui = selected or hits
+        else:
+            hits_for_ui = hits
+
+    # Return the resolved mode (not the router's raw suggestion)
+    router_out = dict(router or {})
+    router_out["resolved_mode"] = mode
+
+    print(f"[/rag] → mode={mode} | hits(all)={len(hits)} | hits(ui)={len(hits_for_ui)} | rewrite='{standalone_q[:120]}'")
 
     return RagResponse(
         answer_fr=answer_fr,
         answer_en=answer_en,
-        mode=router.get("mode", "RAG"),
-        hits=hits,
-        router=router,
+        mode=mode,
+        hits=hits_for_ui,
+        router=router_out,
         rewrite_en=standalone_q,
     )
+
+    #
+    # print(f"[/rag] → mode={router.get('mode')} | hits={len(hits)} | rewrite='{standalone_q[:120]}'")
+    #
+    # return RagResponse(
+    #     answer_fr=answer_fr,
+    #     answer_en=answer_en,
+    #     mode=router.get("mode", "RAG"),
+    #     hits=hits,
+    #     router=router,
+    #     rewrite_en=standalone_q,
+    # )
 
 
 # TEST
