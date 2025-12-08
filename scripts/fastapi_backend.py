@@ -420,11 +420,7 @@ def rag_endpoint(req: RagRequest):
     if mode == "LLM":
         hits_for_ui = []
     else:
-        if use_ids:
-            selected = [h for i, h in enumerate(hits, 1) if i in use_ids]
-            hits_for_ui = selected or hits
-        else:
-            hits_for_ui = hits
+        hits_for_ui = hits
 
     # Return the resolved mode (not the router's raw suggestion)
     router_out = dict(router or {})
