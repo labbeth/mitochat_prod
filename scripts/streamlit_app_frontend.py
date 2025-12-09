@@ -27,11 +27,14 @@ os.environ["NO_PROXY"] = "127.0.0.1,localhost"
 
 
 def strip_anchor_tags(text: str) -> str:
-    # Remove <a ...> and </a> tags but keep the inner text (e.g. [1])
+    """Keep inner text (e.g., [1]) and remove any <a ...> tags."""
     if not text:
         return text
-    return re.sub(r'</?a[^>]*>', '', text)
-
+    # Replace <a ...>...</a> by inner content
+    text = re.sub(r'<a\b[^>]*>(.*?)</a>', r'\1', text, flags=re.IGNORECASE | re.DOTALL)
+    # Remove any stray <a ...> or </a>
+    text = re.sub(r'</?a\b[^>]*>', '', text, flags=re.IGNORECASE)
+    return text
 
 def post_rag(backend_url: str, chat_history: List[Dict[str, str]], query_fr: str, timeout: int = 120) -> Dict[str, Any]:
     payload = {"chat_history": chat_history, "query_fr": query_fr}
@@ -120,7 +123,8 @@ def main():
     for i, m in enumerate(st.session_state.chat):
         with st.chat_message(m["role"]):
             # st.markdown(m["content"])
-            st.markdown(strip_anchor_tags(m["content"]))
+            content = strip_anchor_tags(m["content"])
+            st.markdown(content)
 
             # Under user message, show rewrite + router if present
             if m["role"] == "user" and show_debug:
@@ -192,11 +196,11 @@ def main():
         # # Linkify [1], [2] → #src-i anchors
         # answer_fr_linked = pr.linkify_citations(answer_fr, len(hits))
 
-        # If the model emitted HTML anchors (<a ...>[n]</a>), strip them
+        # If the model emitted HTML anchors, strip them (keep [n])
         answer_fr_clean = strip_anchor_tags(answer_fr)
 
-        # Linkify [1], [2] → #src-i anchors (markdown-safe)
-        answer_fr_linked = pr.linkify_citations(answer_fr_clean, len(hits))
+        # Keep plain [n] (no linkify), same as your local app
+        answer_fr_linked = answer_fr_clean
 
         # (4) store rewrite/router on the user turn (so they render under the user bubble)
         st.session_state.chat[user_idx]["rewrite"] = rewrite_en
