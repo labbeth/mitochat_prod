@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
+import re
 
 import requests
 import streamlit as st
@@ -23,6 +24,13 @@ DEFAULT_BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:9000")
 for var in ["HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"]:
     os.environ.pop(var, None)
 os.environ["NO_PROXY"] = "127.0.0.1,localhost"
+
+
+def strip_anchor_tags(text: str) -> str:
+    # Remove <a ...> and </a> tags but keep the inner text (e.g. [1])
+    if not text:
+        return text
+    return re.sub(r'</?a[^>]*>', '', text)
 
 
 def post_rag(backend_url: str, chat_history: List[Dict[str, str]], query_fr: str, timeout: int = 120) -> Dict[str, Any]:
@@ -111,7 +119,9 @@ def main():
 
     for i, m in enumerate(st.session_state.chat):
         with st.chat_message(m["role"]):
-            st.markdown(m["content"])
+            # st.markdown(m["content"])
+            st.markdown(strip_anchor_tags(m["content"]))
+
             # Under user message, show rewrite + router if present
             if m["role"] == "user" and show_debug:
                 if m.get("rewrite"):
@@ -179,8 +189,14 @@ def main():
         rewrite_en = resp.get("rewrite_en") or ""
         mode = resp.get("mode", "RAG")
 
-        # Linkify [1], [2] → #src-i anchors
-        answer_fr_linked = pr.linkify_citations(answer_fr, len(hits))
+        # # Linkify [1], [2] → #src-i anchors
+        # answer_fr_linked = pr.linkify_citations(answer_fr, len(hits))
+
+        # If the model emitted HTML anchors (<a ...>[n]</a>), strip them
+        answer_fr_clean = strip_anchor_tags(answer_fr)
+
+        # Linkify [1], [2] → #src-i anchors (markdown-safe)
+        answer_fr_linked = pr.linkify_citations(answer_fr_clean, len(hits))
 
         # (4) store rewrite/router on the user turn (so they render under the user bubble)
         st.session_state.chat[user_idx]["rewrite"] = rewrite_en
