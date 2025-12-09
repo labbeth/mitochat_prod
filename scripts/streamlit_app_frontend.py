@@ -198,8 +198,7 @@ def main():
 
         # If the model emitted HTML anchors, strip them (keep [n])
         answer_fr_clean = strip_anchor_tags(answer_fr)
-
-        # Keep plain [n] (no linkify), same as your local app
+        # Keep plain [n] (no linkify)
         answer_fr_linked = answer_fr_clean
 
         # (4) store rewrite/router on the user turn (so they render under the user bubble)
